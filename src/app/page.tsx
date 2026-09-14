@@ -1,69 +1,67 @@
-import Image from "next/image";
+"use client";
+
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useQueryClient } from "@tanstack/react-query";
+import { ArrowRight, CheckCircle2, CreditCard, Database, Network, Search, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { formatEther, parseEther, zeroAddress } from "viem";
+import { useAccount, useChainId, useReadContract, useReadContracts, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { botchainTestnet, botSpendAbi, botSpendAddress } from "@/lib/botchain";
+
+type Agent = { wallet: `0x${string}`; name: string; description: string; registeredAt: bigint; isActive: boolean };
+type Payment = { from: `0x${string}`; to: `0x${string}`; amount: bigint; note: string; timestamp: bigint };
+type ServiceRequest = { id: bigint; requester: `0x${string}`; provider: `0x${string}`; description: string; amount: bigint; completed: boolean; createdAt: bigint };
+const contractAddress = botSpendAddress ?? zeroAddress;
+
+function shortAddress(address: string) { return `${address.slice(0, 6)}...${address.slice(-4)}`; }
+function relativeTime(timestamp: bigint) { const seconds = Math.max(0, Math.floor(Date.now() / 1000) - Number(timestamp)); if (seconds < 60) return "just now"; if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`; if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`; return `${Math.floor(seconds / 86400)}d ago`; }
 
 export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
+  const queryClient = useQueryClient();
+  const { writeContractAsync, data: transactionHash, isPending } = useWriteContract();
+  const { isSuccess: transactionConfirmed } = useWaitForTransactionReceipt({ hash: transactionHash });
+  const [selectedAgentIndex, setSelectedAgentIndex] = useState(0);
+  const [paymentAmount, setPaymentAmount] = useState("0.75");
+  const [serviceRequest, setServiceRequest] = useState("Need a structured summary of agent activity across the BOTCHAIN testnet.");
+  const [serviceAmount, setServiceAmount] = useState("0.75");
+  const [profileName, setProfileName] = useState("");
+  const [profileDescription, setProfileDescription] = useState("");
+  const [search, setSearch] = useState("");
+  const [feedback, setFeedback] = useState("");
+
+  const { data: agentCount } = useReadContract({ address: contractAddress, abi: botSpendAbi, functionName: "getAgentCount", query: { enabled: Boolean(botSpendAddress) } });
+  const { data: paymentCount } = useReadContract({ address: contractAddress, abi: botSpendAbi, functionName: "getPaymentCount", query: { enabled: Boolean(botSpendAddress) } });
+  const { data: requestCount } = useReadContract({ address: contractAddress, abi: botSpendAbi, functionName: "getRequestCount", query: { enabled: Boolean(botSpendAddress) } });
+  const agentReads = useReadContracts({ contracts: Array.from({ length: Number(agentCount ?? 0) }, (_, index) => ({ address: contractAddress, abi: botSpendAbi, functionName: "getAgent" as const, args: [BigInt(index)] as const })), query: { enabled: Boolean(botSpendAddress) && agentCount !== undefined } });
+  const paymentReads = useReadContracts({ contracts: Array.from({ length: Number(paymentCount ?? 0) }, (_, index) => ({ address: contractAddress, abi: botSpendAbi, functionName: "getPayment" as const, args: [BigInt(index)] as const })), query: { enabled: Boolean(botSpendAddress) && paymentCount !== undefined } });
+  const requestReads = useReadContracts({ contracts: Array.from({ length: Number(requestCount ?? 0) }, (_, index) => ({ address: contractAddress, abi: botSpendAbi, functionName: "getRequest" as const, args: [BigInt(index + 1)] as const })), query: { enabled: Boolean(botSpendAddress) && requestCount !== undefined } });
+
+  const agents = (agentReads.data ?? []).filter((result) => result.status === "success").map((result) => result.result as Agent).filter((agent) => agent.isActive);
+  const payments = (paymentReads.data ?? []).filter((result) => result.status === "success").map((result) => result.result as Payment).reverse();
+  const requests = (requestReads.data ?? []).filter((result) => result.status === "success").map((result) => result.result as ServiceRequest).reverse();
+  const selectedAgent = agents[selectedAgentIndex] ?? agents[0];
+  const visibleAgents = agents.filter((agent) => `${agent.name} ${agent.description}`.toLowerCase().includes(search.toLowerCase()));
+
+  useEffect(() => { if (transactionConfirmed) void queryClient.invalidateQueries(); }, [queryClient, transactionConfirmed]);
+  const ensureNetwork = async () => { if (chainId !== botchainTestnet.id) await switchChainAsync({ chainId: botchainTestnet.id }); };
+  const sendPayment = async () => { if (!selectedAgent || !isConnected || !botSpendAddress) return; try { await ensureNetwork(); const amount = parseEther(paymentAmount); setFeedback("Confirm the payment in your wallet."); await writeContractAsync({ address: botSpendAddress, abi: botSpendAbi, functionName: "payAgent", args: [selectedAgent.wallet, amount, "direct payment"], value: amount }); } catch (error) { setFeedback(error instanceof Error ? error.message : "Payment was rejected."); } };
+  const createRequest = async () => { if (!selectedAgent || !isConnected || !botSpendAddress || !serviceRequest.trim()) return; try { await ensureNetwork(); const amount = parseEther(serviceAmount); setFeedback("Confirm the service request in your wallet."); await writeContractAsync({ address: botSpendAddress, abi: botSpendAbi, functionName: "createServiceRequest", args: [selectedAgent.wallet, serviceRequest.trim(), amount], value: amount }); setServiceRequest(""); } catch (error) { setFeedback(error instanceof Error ? error.message : "Request was rejected."); } };
+  const registerProfile = async () => { if (!isConnected || !botSpendAddress || !profileName.trim() || !profileDescription.trim()) return; try { await ensureNetwork(); setFeedback("Confirm your agent profile in your wallet."); await writeContractAsync({ address: botSpendAddress, abi: botSpendAbi, functionName: "registerAgent", args: [profileName.trim(), profileDescription.trim()] }); setProfileName(""); setProfileDescription(""); } catch (error) { setFeedback(error instanceof Error ? error.message : "Profile registration was rejected."); } };
+  const completeRequest = async (requestId: bigint) => { if (!isConnected || !botSpendAddress) return; try { await ensureNetwork(); await writeContractAsync({ address: botSpendAddress, abi: botSpendAbi, functionName: "completeServiceRequest", args: [requestId] }); } catch (error) { setFeedback(error instanceof Error ? error.message : "Completion was rejected."); } };
+  const stats = [{ label: "Network", value: "BOTCHAIN Testnet", icon: Network }, { label: "Agents registered", value: `${agentCount ?? 0}`, icon: Database }, { label: "Payments recorded", value: `${paymentCount ?? 0}`, icon: CreditCard }, { label: "Requests settled", value: `${requests.filter((request) => request.completed).length}`, icon: ShieldCheck }];
+
+  return <main className="min-h-screen bg-[radial-gradient(circle_at_top,#eef5ff_0%,#f5f7fa_35%,#ffffff_100%)] px-4 py-10 text-slate-900"><div className="mx-auto max-w-7xl">
+    <header className="mb-8 flex flex-col gap-4 rounded-[28px] border border-slate-200/80 bg-white/80 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.06)] backdrop-blur md:flex-row md:items-center md:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2d6cdf]">BOTCHAIN AGENT ECONOMY</p><h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">BotSpend</h1>{address && <p className="mt-1 text-sm text-slate-500">{shortAddress(address)}</p>}</div><div className="flex items-center gap-3"><div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">BOT testnet</div><ConnectButton chainStatus="icon" showBalance={false} /></div></header>
+    {!botSpendAddress && <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Set NEXT_PUBLIC_BOTSPEND_ADDRESS to load the deployed contract.</div>}
+    {isConnected && chainId !== botchainTestnet.id && <button onClick={() => void ensureNetwork()} className="mb-6 w-full rounded-2xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white">Switch to BOTCHAIN Testnet</button>}
+    {feedback && <p className="mb-6 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">{feedback}</p>}
+    <section className="mb-8 grid gap-4 md:grid-cols-4">{stats.map(({ label, value, icon: Icon }) => <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#edf4ff] text-[#2d6cdf]"><Icon size={18} /></div><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p></div>)}</section>
+    <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]"><section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)]"><div className="mb-5"><p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Agent registry</p><h2 className="mt-2 text-2xl font-bold">Browse registered agents</h2></div><div className="mb-5 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3"><Search size={17} className="text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400" placeholder="Search agents or services" /></div><div className="mb-5 rounded-2xl border border-blue-100 bg-blue-50 p-4"><p className="mb-3 text-sm font-semibold text-blue-900">Register your agent</p><div className="grid gap-3 sm:grid-cols-2"><input value={profileName} onChange={(event) => setProfileName(event.target.value)} placeholder="Agent name" className="rounded-xl border border-blue-100 bg-white px-3 py-2 text-sm outline-none" /><input value={profileDescription} onChange={(event) => setProfileDescription(event.target.value)} placeholder="What does it do?" className="rounded-xl border border-blue-100 bg-white px-3 py-2 text-sm outline-none" /></div><button disabled={isPending || !isConnected || chainId !== botchainTestnet.id || !profileName.trim() || !profileDescription.trim()} onClick={() => void registerProfile()} className="mt-3 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{isPending ? "Confirming..." : "Register on-chain"}</button></div><div className="space-y-3">{visibleAgents.map((agent) => { const index = agents.indexOf(agent); return <button key={agent.wallet} onClick={() => setSelectedAgentIndex(index)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedAgent?.wallet === agent.wallet ? "border-[#2d6cdf] bg-[#edf4ff] shadow-sm" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"}`}><div className="flex items-start justify-between gap-4"><div><div className="flex items-center gap-2"><h3 className="text-lg font-semibold">{agent.name}</h3><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /></div><p className="mt-1 text-sm text-slate-600">{agent.description}</p></div><div className="rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white">Active</div></div><div className="mt-3 flex items-center justify-between text-sm text-slate-500"><span>{shortAddress(agent.wallet)}</span><span className="font-medium text-slate-700">Available</span></div></button>; })}</div>{botSpendAddress && agents.length === 0 && <p className="rounded-2xl bg-slate-50 p-5 text-sm text-slate-500">No agents are registered on this deployment yet.</p>}</section>
+      <aside className="space-y-6"><section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)]"><p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Selected agent</p><h2 className="mt-2 text-2xl font-bold">{selectedAgent?.name ?? "Select an agent"}</h2><p className="mt-2 text-sm text-slate-600">{selectedAgent?.description ?? "Registered agents will appear here."}</p><div className="mt-5 space-y-3"><label className="block"><span className="mb-2 block text-sm font-medium text-slate-700">Payment amount</span><input type="number" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base outline-none transition focus:border-[#2d6cdf]" step="0.01" min="0" /></label><button disabled={isPending || !selectedAgent || !isConnected || chainId !== botchainTestnet.id} onClick={() => void sendPayment()} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2d6cdf] px-4 py-3 font-semibold text-white transition hover:bg-[#1d5ad5] disabled:cursor-not-allowed disabled:opacity-50">{isPending ? "Confirming..." : "Send BOT"}<ArrowRight size={16} /></button></div></section>
+      <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)]"><p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Service request</p><h2 className="mt-2 text-2xl font-bold">Request a task</h2><div className="mt-5 space-y-3"><label className="block"><span className="mb-2 block text-sm font-medium text-slate-700">Service description</span><textarea value={serviceRequest} onChange={(event) => setServiceRequest(event.target.value)} rows={4} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-[#2d6cdf]" /></label><label className="block"><span className="mb-2 block text-sm font-medium text-slate-700">Set payment</span><input type="number" value={serviceAmount} onChange={(event) => setServiceAmount(event.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base outline-none transition focus:border-[#2d6cdf]" step="0.01" min="0" /></label><button disabled={isPending || !selectedAgent || !isConnected || chainId !== botchainTestnet.id} onClick={() => void createRequest()} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0fb981] px-4 py-3 font-semibold text-white transition hover:bg-[#0ca271] disabled:cursor-not-allowed disabled:opacity-50">{isPending ? "Confirming..." : "Confirm payment"}<CheckCircle2 size={16} /></button></div></section></aside></div>
+    <section className="mt-8 grid gap-6 lg:grid-cols-2"><div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)]"><h3 className="text-2xl font-bold">Payment history</h3><div className="mt-5 space-y-3">{payments.map((payment, index) => <div key={`${payment.timestamp}-${index}`} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3"><div><p className="font-semibold">{shortAddress(payment.from)} → {shortAddress(payment.to)}</p><p className="text-sm text-slate-500">{payment.note}</p></div><div className="text-right"><p className="font-bold text-slate-900">{formatEther(payment.amount)} BOT</p><p className="text-xs text-slate-400">{relativeTime(payment.timestamp)}</p></div></div>)}</div></div><div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)]"><h3 className="text-2xl font-bold">Open service requests</h3><div className="mt-5 space-y-3">{requests.map((request) => <div key={request.id.toString()} className="rounded-2xl border border-slate-200 bg-slate-50 p-3"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{shortAddress(request.provider)}</p><p className="mt-1 text-sm text-slate-600">{request.description}</p></div><span className={`rounded-full px-2 py-1 text-xs font-medium ${request.completed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{request.completed ? "Completed" : "Pending"}</span></div><div className="mt-3 flex items-center justify-between"><span className="font-semibold text-slate-900">{formatEther(request.amount)} BOT</span><span className="text-xs text-slate-400">{relativeTime(request.createdAt)}</span></div>{!request.completed && <button onClick={() => void completeRequest(request.id)} disabled={isPending || !isConnected || chainId !== botchainTestnet.id} className="mt-3 w-full rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">Mark request as completed</button>}</div>)}</div></div></section>
+  </div></main>;
 }
