@@ -4,13 +4,13 @@ import "@rainbow-me/rainbowkit/styles.css";
 import { getDefaultConfig, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
-import { botchainTestnet } from "@/lib/botchain";
+import { botchainMainnet } from "@/lib/botchain";
 import { useState } from "react";
 
 const config = getDefaultConfig({
-  appName: "BotSpend",
+  appName: "PayMesh",
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "00000000000000000000000000000000",
-  chains: [botchainTestnet],
+  chains: [botchainMainnet],
   ssr: true,
 });
 

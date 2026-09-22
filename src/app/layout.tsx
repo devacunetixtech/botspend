@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BotSpend | Agent Commerce on BOTCHAIN",
+  title: "PayMesh | Agent Commerce on BOTCHAIN",
   description: "Machine-to-machine payments for BOTCHAIN autonomous agents.",
 };
 

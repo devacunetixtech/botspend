@@ -23,7 +23,7 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import { botchainTestnet, botSpendAbi, botSpendAddress } from "@/lib/botchain";
+import { botchainMainnet, botSpendAbi, botSpendAddress } from "@/lib/botchain";
 
 type Agent = {
   wallet: `0x${string}`;
@@ -170,8 +170,8 @@ export default function Home() {
   }, [queryClient, transactionConfirmed]);
 
   const ensureNetwork = async () => {
-    if (chainId !== botchainTestnet.id) {
-      await switchChainAsync({ chainId: botchainTestnet.id });
+    if (chainId !== botchainMainnet.id) {
+      await switchChainAsync({ chainId: botchainMainnet.id });
     }
   };
 
@@ -246,13 +246,13 @@ export default function Home() {
     }
   };
 
-  const disabled = isPending || !isConnected || chainId !== botchainTestnet.id;
+  const disabled = isPending || !isConnected || chainId !== botchainMainnet.id;
 
   return (
     <main className="min-h-screen bg-[#f4f0e8] text-[#18221d]">
       <div className="border-b border-[#18221d]/10 bg-[#18221d] px-5 py-4 text-[#f4f0e8]">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <p className="font-mono text-xs uppercase tracking-[0.22em]">BotSpend / BOTCHAIN testnet</p>
+          <p className="font-mono text-xs uppercase tracking-[0.22em]">PayMesh / BOTCHAIN mainnet</p>
           <a href="#workspace" className="text-sm font-semibold underline decoration-[#b8e35f] decoration-2 underline-offset-4">Open workspace</a>
         </div>
       </div>
@@ -262,7 +262,7 @@ export default function Home() {
           <div>
             <p className="mb-6 font-mono text-xs uppercase tracking-[0.24em] text-[#47602d]">A settlement layer for useful software</p>
             <h1 className="max-w-4xl text-5xl font-black leading-[0.95] tracking-[-0.05em] md:text-8xl">Let agents pay for work.</h1>
-            <p className="mt-8 max-w-xl text-lg leading-8 text-[#405044]">BotSpend gives autonomous services a shared place to register, find one another, request work, and settle in BOT without a human passing messages between them.</p>
+            <p className="mt-8 max-w-xl text-lg leading-8 text-[#405044]">PayMesh gives autonomous services a shared place to register, find one another, request work, and settle in BOT without a human passing messages between them.</p>
             <div className="mt-9 flex flex-wrap gap-3">
               <a href="#workspace" className="rounded-full bg-[#18221d] px-6 py-3 text-sm font-bold text-[#f4f0e8] transition hover:bg-[#314238]">Enter the workspace <ArrowRight className="ml-2 inline" size={16} /></a>
               <a href="#how-it-works" className="rounded-full border border-[#18221d]/30 px-6 py-3 text-sm font-semibold transition hover:bg-[#f4f0e8]/60">How it works</a>
@@ -281,7 +281,7 @@ export default function Home() {
           {[
             ["01 / Register", "Give a service an address.", "Publish a name and description so other participants can choose a provider with a clear wallet destination."],
             ["02 / Request", "Fund a piece of work.", "Create a request with a description and BOT amount. The payment is sent to the provider as the request is created."],
-            ["03 / Settle", "Keep the receipt on-chain.", "Payments, requests, timestamps, and completion states remain readable from the deployed BotSpend contract."],
+            ["03 / Settle", "Keep the receipt on-chain.", "Payments, requests, timestamps, and completion states remain readable from the deployed PayMesh contract."],
           ].map(([label, title, copy]) => <div key={label}><p className="font-mono text-xs uppercase tracking-[0.2em] text-[#e06b3c]">{label}</p><h2 className="mt-4 text-2xl font-bold">{title}</h2><p className="mt-3 leading-7 text-[#59645c]">{copy}</p></div>)}
         </div>
       </section>
@@ -289,16 +289,16 @@ export default function Home() {
       <div id="workspace" className="mx-auto max-w-7xl px-5 py-12">
         <header className="mb-8 flex flex-col gap-4 border-b border-[#18221d]/15 pb-5 md:flex-row md:items-end md:justify-between">
           <div><p className="font-mono text-xs uppercase tracking-[0.22em] text-[#e06b3c]">Live workspace</p><h2 className="mt-2 text-4xl font-black tracking-[-0.04em]">Operate on BOTCHAIN</h2>{address && <p className="mt-2 font-mono text-xs text-[#59645c]">Connected: {shortAddress(address)}</p>}</div>
-          <div className="flex items-center gap-3"><div className="rounded-full border border-[#18221d]/20 px-3 py-1 text-sm font-medium">Testnet / 968</div><ConnectButton chainStatus="icon" showBalance={false} /></div>
+          <div className="flex items-center gap-3"><div className="rounded-full border border-[#18221d]/20 px-3 py-1 text-sm font-medium">Mainnet / 677</div><ConnectButton chainStatus="icon" showBalance={false} /></div>
         </header>
 
-        {!botSpendAddress && <div className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">Set NEXT_PUBLIC_BOTSPEND_ADDRESS to load the deployed contract.</div>}
-        {isConnected && chainId !== botchainTestnet.id && <button onClick={() => void ensureNetwork()} className="mb-6 w-full rounded-2xl bg-[#e06b3c] px-4 py-3 text-sm font-semibold text-white">Switch to BOTCHAIN Testnet</button>}
+        {!botSpendAddress && <div className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">Set NEXT_PUBLIC_BOTSPEND_ADDRESS to load the deployed PayMesh contract.</div>}
+        {isConnected && chainId !== botchainMainnet.id && <button onClick={() => void ensureNetwork()} className="mb-6 w-full rounded-2xl bg-[#e06b3c] px-4 py-3 text-sm font-semibold text-white">Switch to BOTCHAIN Mainnet</button>}
         {feedback && <p className="mb-6 rounded-2xl border border-[#b8e35f] bg-[#eff8d9] px-4 py-3 text-sm text-[#405044]">{feedback}</p>}
 
         <section className="mb-8 grid gap-4 md:grid-cols-4">
           {[
-            ["Network", "BOTCHAIN Testnet", Network],
+            ["Network", "BOTCHAIN Mainnet", Network],
             ["Registered agents", `${agentCount ?? 0}`, Database],
             ["Payments recorded", `${paymentCount ?? 0}`, CreditCard],
             ["Requests settled", `${requests.filter((request) => request.completed).length}`, ShieldCheck],

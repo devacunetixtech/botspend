@@ -1,5 +1,5 @@
 {
-  "name": "botspend",
+  "name": "paymesh",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,8 +10,11 @@
     "compile": "hardhat compile",
     "test:contracts": "hardhat test",
     "deploy:botchain:testnet": "hardhat run scripts/deploy.js --network botchainTestnet",
-    "verify:botchain:testnet": "hardhat run scripts/verify.js --network botchainTestnet",
-    "verify:testnet": "HARDHAT_NETWORK=botchainTestnet node scripts/verify.js"
+    "deploy:botchain:mainnet": "hardhat run scripts/deploy.js --network botchainMainnet",
+    "verify:botchain:testnet": "hardhat verify --network botchainTestnet",
+    "verify:botchain:mainnet": "hardhat verify --network botchainMainnet",
+    "verify:testnet": "HARDHAT_NETWORK=botchainTestnet node scripts/verify.js",
+    "verify:mainnet": "HARDHAT_NETWORK=botchainMainnet node scripts/verify.js"
   },
   "dependencies": {
     "@rainbow-me/rainbowkit": "^2.2.11",

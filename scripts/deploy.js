@@ -20,10 +20,10 @@ async function main() {
   fs.mkdirSync(outputDirectory, { recursive: true });
   fs.writeFileSync(path.join(outputDirectory, `${network.name}.json`), `${JSON.stringify(deployment, null, 2)}\n`);
 
-  console.log(`BotSpend deployed to: ${address}`);
+  console.log(`PayMesh contract (BotSpend) deployed to: ${address}`);
   console.log(`Chain ID: ${network.chainId}`);
   console.log(`Set NEXT_PUBLIC_BOTSPEND_ADDRESS=${address}`);
-  console.log(`Verify with: npm run verify:botchain:testnet -- ${address}`);
+  console.log(`Verify with: npm run verify:botchain:${network.name === "botchainMainnet" ? "mainnet" : "testnet"} -- ${address}`);
 }
 
 main().catch((error) => {

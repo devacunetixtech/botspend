@@ -5,7 +5,7 @@ async function main() {
   if (!address) throw new Error("Pass the deployed address or set BOTSPEND_ADDRESS.");
 
   await hre.run("verify:verify", { address, constructorArguments: [] });
-  console.log(`BotSpend verified at: ${address}`);
+  console.log(`PayMesh contract (BotSpend) verified at: ${address}`);
 }
 
 main().catch((error) => {

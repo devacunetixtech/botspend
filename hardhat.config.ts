@@ -32,7 +32,7 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       botchainTestnet: process.env.BOTCHAIN_API_KEY || process.env.BLOCKSCOUT_API_KEY || "",
-      botchainMainnet: process.env.BOTCHAIN_API_KEY || "",
+      botchainMainnet: process.env.BOTCHAIN_API_KEY || process.env.BLOCKSCOUT_API_KEY || "",
     },
     customChains: [
       {
